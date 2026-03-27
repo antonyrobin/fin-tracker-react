@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllReminders, addReminder, updateReminder, deleteReminder, getAllAccounts, addTransaction } from '../db/database';
+import { getAllReminders, addReminder, updateReminder, deleteReminder, getAllAccounts, addTransaction, deleteTransaction } from '../db/database';
 import { useAuth } from '../context/AuthContext';
 
 export default function Reminders() {
@@ -56,10 +56,10 @@ export default function Reminders() {
 
   async function toggleComplete(rem) {
     const isNowCompleted = !rem.completed;
-    await updateReminder({ ...rem, completed: isNowCompleted });
+    let updatedRem = { ...rem, completed: isNowCompleted };
 
     if (isNowCompleted && rem.accountId) {
-      await addTransaction({
+      const txId = await addTransaction({
         type: rem.type === 'payment' ? 'expense' : 'income',
         accountId: rem.accountId,
         amount: Number(rem.amount) || 0,
@@ -69,8 +69,38 @@ export default function Reminders() {
         reference: 'Auto-generated',
         userId: user.id
       });
+      updatedRem.linkedTransactionId = txId;
+    } else if (!isNowCompleted && rem.linkedTransactionId) {
+      await deleteTransaction(rem.linkedTransactionId);
+      updatedRem.linkedTransactionId = null;
     }
 
+    if (isNowCompleted && rem.recurring && rem.recurring !== 'none') {
+      const nextDate = new Date(rem.dueDate);
+      if (rem.recurring === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+      else if (rem.recurring === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+      else if (rem.recurring === 'quarterly') nextDate.setMonth(nextDate.getMonth() + 3);
+      else if (rem.recurring === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1);
+      
+      const newRem = {
+        title: rem.title,
+        type: rem.type,
+        amount: rem.amount,
+        dueDate: nextDate.toISOString().split('T')[0],
+        description: rem.description || '',
+        accountId: rem.accountId,
+        recurring: rem.recurring,
+        completed: false,
+        userId: user.id
+      };
+      const newRemId = await addReminder(newRem);
+      updatedRem.nextReminderId = newRemId;
+    } else if (!isNowCompleted && rem.nextReminderId) {
+      await deleteReminder(rem.nextReminderId);
+      updatedRem.nextReminderId = null;
+    }
+
+    await updateReminder(updatedRem);
     loadData();
   }
 
