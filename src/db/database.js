@@ -16,7 +16,7 @@ async function fetchD1(endpoint, options = {}) {
   if (!res.ok || data.success === false) {
     throw new Error(data.error || data.message || 'D1 API Error');
   }
-  if (res.headers.get('token')) {
+  if (res.headers && res.headers.get('token')) {
     cookieStore.set('token', res.headers.get('token'), { expires: 1 * 24 * 60 * 60 * 1000, path: '/', sameSite: 'strict', secure: true });
   }
   return data;
