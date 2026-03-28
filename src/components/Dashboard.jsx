@@ -50,7 +50,14 @@ export default function Dashboard() {
         case 'debit': totalDebit += amt; break;
       }
     });
-    const balance = totalIncome + totalCredit - totalExpense - totalDebit;
+    let openingBalance = 0;
+    accounts.forEach(a => {
+      if (filterAccount === 'all' || a.id === Number(filterAccount)) {
+        openingBalance += Number(a.balance) || 0;
+      }
+    });
+
+    const balance = openingBalance + totalIncome + totalCredit - totalExpense - totalDebit;
     const ratio = totalExpense > 0 ? (totalIncome / totalExpense) : totalIncome > 0 ? Infinity : 0;
 
     // Pending from reminders
@@ -63,7 +70,7 @@ export default function Dashboard() {
       .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
     return { totalIncome, totalExpense, totalCredit, totalDebit, balance, ratio, pendingPayments, pendingReceivables };
-  }, [filtered, reminders]);
+  }, [filtered, reminders, accounts, filterAccount]);
 
   // Monthly trend data
   const monthlyData = useMemo(() => {
