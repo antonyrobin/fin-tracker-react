@@ -98,6 +98,7 @@ a {
   text-decoration: none;
   transition: color var(--transition-fast);
 }
+
 a:hover {
   color: var(--accent-cyan);
 }
@@ -107,13 +108,16 @@ a:hover {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-primary);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-indigo);
 }
@@ -308,11 +312,25 @@ a:hover {
   height: 3px;
 }
 
-.summary-card.card-balance::before { background: var(--gradient-primary); }
-.summary-card.card-income::before { background: var(--gradient-success); }
-.summary-card.card-expense::before { background: var(--gradient-danger); }
-.summary-card.card-pending::before { background: var(--gradient-warning); }
-.summary-card.card-receivable::before { background: var(--gradient-info); }
+.summary-card.card-balance::before {
+  background: var(--gradient-primary);
+}
+
+.summary-card.card-income::before {
+  background: var(--gradient-success);
+}
+
+.summary-card.card-expense::before {
+  background: var(--gradient-danger);
+}
+
+.summary-card.card-pending::before {
+  background: var(--gradient-warning);
+}
+
+.summary-card.card-receivable::before {
+  background: var(--gradient-info);
+}
 
 .summary-card .card-icon {
   width: 44px;
@@ -325,11 +343,30 @@ a:hover {
   margin-bottom: var(--space-md);
 }
 
-.card-balance .card-icon { background: rgba(99, 102, 241, 0.15); color: var(--accent-indigo-light); }
-.card-income .card-icon { background: rgba(52, 211, 153, 0.15); color: var(--accent-emerald); }
-.card-expense .card-icon { background: rgba(251, 113, 133, 0.15); color: var(--accent-rose); }
-.card-pending .card-icon { background: rgba(251, 191, 36, 0.15); color: var(--accent-amber); }
-.card-receivable .card-icon { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
+.card-balance .card-icon {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-indigo-light);
+}
+
+.card-income .card-icon {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--accent-emerald);
+}
+
+.card-expense .card-icon {
+  background: rgba(251, 113, 133, 0.15);
+  color: var(--accent-rose);
+}
+
+.card-pending .card-icon {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--accent-amber);
+}
+
+.card-receivable .card-icon {
+  background: rgba(34, 211, 238, 0.15);
+  color: var(--accent-cyan);
+}
 
 .summary-card .card-label {
   font-size: 0.8rem;
@@ -355,12 +392,14 @@ a:hover {
 /* ─── Charts Container ───────────────────────────────── */
 .charts-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: var(--space-lg);
   margin-bottom: var(--space-xl);
 }
 
 .chart-card {
+  position: relative;
+  overflow: hidden;
   padding: var(--space-lg);
 }
 
@@ -425,6 +464,7 @@ a:hover {
   color: white;
   box-shadow: var(--shadow-sm);
 }
+
 .btn-primary:hover {
   box-shadow: var(--shadow-glow-indigo);
   transform: translateY(-1px);
@@ -435,6 +475,7 @@ a:hover {
   color: #0a0e1a;
   box-shadow: var(--shadow-sm);
 }
+
 .btn-success:hover {
   box-shadow: var(--shadow-glow-emerald);
   transform: translateY(-1px);
@@ -445,6 +486,7 @@ a:hover {
   color: white;
   box-shadow: var(--shadow-sm);
 }
+
 .btn-danger:hover {
   box-shadow: var(--shadow-glow-rose);
   transform: translateY(-1px);
@@ -455,6 +497,7 @@ a:hover {
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
 }
+
 .btn-outline:hover {
   border-color: var(--accent-indigo);
   color: var(--accent-indigo-light);
@@ -537,14 +580,17 @@ table tbody tr:last-child td {
   background: rgba(52, 211, 153, 0.15);
   color: var(--accent-emerald);
 }
+
 .badge-expense {
   background: rgba(251, 113, 133, 0.15);
   color: var(--accent-rose);
 }
+
 .badge-credit {
   background: rgba(34, 211, 238, 0.15);
   color: var(--accent-cyan);
 }
+
 .badge-debit {
   background: rgba(251, 191, 36, 0.15);
   color: var(--accent-amber);
@@ -644,8 +690,13 @@ table tbody tr:last-child td {
   border-left: 4px solid;
 }
 
-.reminder-card.payment { border-left-color: var(--accent-rose); }
-.reminder-card.receivable { border-left-color: var(--accent-emerald); }
+.reminder-card.payment {
+  border-left-color: var(--accent-rose);
+}
+
+.reminder-card.receivable {
+  border-left-color: var(--accent-emerald);
+}
 
 .reminder-card .reminder-icon {
   width: 44px;
@@ -662,6 +713,7 @@ table tbody tr:last-child td {
   background: rgba(251, 113, 133, 0.15);
   color: var(--accent-rose);
 }
+
 .reminder-card.receivable .reminder-icon {
   background: rgba(52, 211, 153, 0.15);
   color: var(--accent-emerald);
@@ -688,8 +740,13 @@ table tbody tr:last-child td {
   font-weight: 700;
 }
 
-.reminder-card.payment .reminder-amount { color: var(--accent-rose); }
-.reminder-card.receivable .reminder-amount { color: var(--accent-emerald); }
+.reminder-card.payment .reminder-amount {
+  color: var(--accent-rose);
+}
+
+.reminder-card.receivable .reminder-amount {
+  color: var(--accent-emerald);
+}
 
 .reminder-due {
   text-align: right;
@@ -791,8 +848,15 @@ table tbody tr:last-child td {
   display: inline-block;
   margin-right: var(--space-sm);
 }
-.status-dot.active { background: var(--accent-emerald); box-shadow: 0 0 6px rgba(52,211,153,0.5); }
-.status-dot.inactive { background: var(--text-muted); }
+
+.status-dot.active {
+  background: var(--accent-emerald);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
+}
+
+.status-dot.inactive {
+  background: var(--text-muted);
+}
 
 /* ─── Ratio Indicator ────────────────────────────────── */
 .ratio-bar {
@@ -840,29 +904,63 @@ table tbody tr:last-child td {
   min-width: 280px;
 }
 
-.toast.success { border-left: 3px solid var(--accent-emerald); }
-.toast.error { border-left: 3px solid var(--accent-rose); }
-.toast.info { border-left: 3px solid var(--accent-indigo); }
+.toast.success {
+  border-left: 3px solid var(--accent-emerald);
+}
+
+.toast.error {
+  border-left: 3px solid var(--accent-rose);
+}
+
+.toast.info {
+  border-left: 3px solid var(--accent-indigo);
+}
 
 /* ─── Animations ─────────────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ─── Account Cards ──────────────────────────────────── */
@@ -943,7 +1041,7 @@ table tbody tr:last-child td {
   .mobile-menu-btn {
     display: flex;
   }
-  
+
   .sidebar {
     transform: translateX(-100%);
   }
@@ -980,6 +1078,7 @@ table tbody tr:last-child td {
   .accounts-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 /* ─── Tab Navigation ─────────────────────────────────── */
@@ -1024,11 +1123,25 @@ table tbody tr:last-child td {
 }
 
 /* ─── Misc ───────────────────────────────────────────── */
-.text-income { color: var(--accent-emerald); }
-.text-expense { color: var(--accent-rose); }
-.text-credit { color: var(--accent-cyan); }
-.text-debit { color: var(--accent-amber); }
-.text-muted { color: var(--text-muted); }
+.text-income {
+  color: var(--accent-emerald);
+}
+
+.text-expense {
+  color: var(--accent-rose);
+}
+
+.text-credit {
+  color: var(--accent-cyan);
+}
+
+.text-debit {
+  color: var(--accent-amber);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
 
 .flex-between {
   display: flex;
@@ -1036,10 +1149,21 @@ table tbody tr:last-child td {
   justify-content: space-between;
 }
 
-.mt-md { margin-top: var(--space-md); }
-.mt-lg { margin-top: var(--space-lg); }
-.mb-md { margin-bottom: var(--space-md); }
-.mb-lg { margin-bottom: var(--space-lg); }
+.mt-md {
+  margin-top: var(--space-md);
+}
+
+.mt-lg {
+  margin-top: var(--space-lg);
+}
+
+.mb-md {
+  margin-bottom: var(--space-md);
+}
+
+.mb-lg {
+  margin-bottom: var(--space-lg);
+}
 
 .inline-flex {
   display: inline-flex;
@@ -1110,6 +1234,13 @@ input[type="file"] {
   cursor: pointer;
   padding: 0;
 }
+
 .btn-link:hover {
   text-decoration: underline;
+}
+
+/* ─── Custom CSS ──────────────────────────────── */
+.user-name {
+  padding-left: 20px;
+  padding-top: 10px;
 }
