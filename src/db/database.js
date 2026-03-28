@@ -75,10 +75,8 @@ export async function loginUser(email, password) {
   }
 
   const user = res.results[0];
-  if (!res.token) {
+  if (!user || !user.id) {
     throw new Error('Incorrect password.');
-  } else {
-    cookieStore.set('token', res.token, { expires: 1 * 24 * 60 * 60 * 1000, path: '/', sameSite: 'strict', secure: true });
   }
   return { id: user.id, name: user.name, email: user.email };
 }
