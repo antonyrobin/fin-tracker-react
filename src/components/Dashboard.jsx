@@ -256,7 +256,7 @@ export default function Dashboard() {
         </div>
 
         {categoryData.length > 0 && (
-          <div className="card chart-card" style={{ gridColumn: 'span 2' }}>
+          <div className="card chart-card">
             <h3>Expense by Category</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={categoryData} layout="vertical">

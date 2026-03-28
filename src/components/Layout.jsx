@@ -60,10 +60,10 @@ export default function Layout({ children }) {
 
         {/* User Profile Section */}
         <div className="sidebar-user">
-          <div className="user-avatar">{userInitial}</div>
+          {/*<div className="user-avatar">{userInitial}</div>*/}
           <div className="user-info">
-            <div className="user-name">{user?.name || 'User'}</div>
-            <div className="user-email">{user?.email || ''}</div>
+            <h3 className="user-name">{user?.name || 'User'}</h3>
+            {/*<div className="user-email">{user?.email || ''}</div>*/}
           </div>
         </div>
 
