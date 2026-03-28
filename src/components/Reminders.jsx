@@ -137,7 +137,7 @@ export default function Reminders() {
   const overdueCount = reminders.filter(r => getDaysUntil(r.dueDate) < 0 && !r.completed).length;
 
   const getAccountName = (id) => accounts.find(a => a.id === id)?.name || '';
-  const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+  const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
   return (
     <div>
