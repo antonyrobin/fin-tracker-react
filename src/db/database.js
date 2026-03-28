@@ -40,7 +40,7 @@ async function hashPassword(password) {
 export async function registerUser({ name, email, password }) {
   const hashedPassword = await hashPassword(password);
   try {
-    const res = await fetchD1('/rest/users', {
+    const res = await fetchD1('/rest/register', {
       method: 'POST',
       body: JSON.stringify({
         name,
@@ -53,7 +53,7 @@ export async function registerUser({ name, email, password }) {
     // Fallback: If the API doesn't return the ID, fetch it by email
     let id = res.meta?.last_row_id || res.data?.id;
     if (!id) {
-      const getRes = await fetchD1(`/rest/register?email=${encodeURIComponent(email.toLowerCase().trim())}`);
+      const getRes = await fetchD1(`/rest/getuser?email=${encodeURIComponent(email.toLowerCase().trim())}`);
       id = getRes.results?.[0]?.id;
     }
 
@@ -68,7 +68,14 @@ export async function registerUser({ name, email, password }) {
 
 export async function loginUser(email, password) {
   const hashedPassword = await hashPassword(password);
-  const res = await fetchD1(`/rest/login?email=${encodeURIComponent(email.toLowerCase().trim())}&password=${encodeURIComponent(hashedPassword)}`);
+
+  const res = await fetchD1('/rest/login', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: email.toLowerCase().trim(),
+      password: hashedPassword
+    })
+  });
 
   if (!res.results || res.results.length === 0) {
     throw new Error('No account found with this email.');
