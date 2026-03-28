@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { getAllTransactions, addTransaction, updateTransaction, deleteTransaction, getAllAccounts } from '../db/database';
 import { useAuth } from '../context/AuthContext';
 
-const TYPES = ['income', 'expense', 'credit', 'debit'];
+const TYPES = ['income', 'expense', 'transfer', 'credit', 'debit'];
 const CATEGORIES = [
   'Salary', 'Freelance', 'Business', 'Investment',
   'Food', 'Transport', 'Shopping', 'Bills', 'Rent', 'Entertainment',
@@ -19,7 +19,7 @@ export default function Transactions() {
   const [filterAccount, setFilterAccount] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [form, setForm] = useState({
-    type: 'expense', accountId: '', amount: '', date: new Date().toISOString().split('T')[0],
+    type: 'expense', accountId: '', toAccountId: '', amount: '', date: new Date().toISOString().split('T')[0],
     description: '', category: 'Other', reference: '',
   });
   const { user } = useAuth();
@@ -46,7 +46,7 @@ export default function Transactions() {
   function openAdd() {
     setEditing(null);
     setForm({
-      type: 'expense', accountId: accounts[0]?.id || '', amount: '',
+      type: 'expense', accountId: accounts[0]?.id || '', toAccountId: '', amount: '',
       date: new Date().toISOString().split('T')[0], description: '', category: 'Other', reference: '',
     });
     setShowModal(true);
@@ -55,7 +55,7 @@ export default function Transactions() {
   function openEdit(txn) {
     setEditing(txn);
     setForm({
-      type: txn.type, accountId: txn.accountId, amount: txn.amount,
+      type: txn.type, accountId: txn.accountId, toAccountId: '', amount: txn.amount,
       date: txn.date, description: txn.description || '', category: txn.category || 'Other',
       reference: txn.reference || '',
     });
@@ -65,12 +65,43 @@ export default function Transactions() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.amount || !form.accountId) return;
+    if (form.type === 'transfer' && !form.toAccountId) {
+      alert('Please select a destination account for the transfer.');
+      return;
+    }
     try {
-      const data = { ...form, amount: Number(form.amount), accountId: Number(form.accountId), userId: user.id };
-      if (editing) {
-        await updateTransaction({ ...editing, ...data });
+      if (form.type === 'transfer') {
+        // Handle Self Transfer as two transactions
+        await Promise.all([
+          addTransaction({
+            type: 'expense',
+            accountId: Number(form.accountId),
+            amount: Number(form.amount),
+            date: form.date,
+            description: `Transfer to ${getAccountName(Number(form.toAccountId))}: ${form.description}`,
+            category: 'Transfer',
+            reference: form.reference,
+            userId: user.id
+          }),
+          addTransaction({
+            type: 'income',
+            accountId: Number(form.toAccountId),
+            amount: Number(form.amount),
+            date: form.date,
+            description: `Transfer from ${getAccountName(Number(form.accountId))}: ${form.description}`,
+            category: 'Transfer',
+            reference: form.reference,
+            userId: user.id
+          })
+        ]);
       } else {
-        await addTransaction(data);
+        const data = { ...form, amount: Number(form.amount), accountId: Number(form.accountId), userId: user.id };
+        delete data.toAccountId; // Clean up
+        if (editing) {
+          await updateTransaction({ ...editing, ...data });
+        } else {
+          await addTransaction(data);
+        }
       }
       setShowModal(false);
       loadData();
@@ -86,7 +117,7 @@ export default function Transactions() {
   }
 
   const getAccountName = (id) => accounts.find(a => a.id === id)?.name || 'Unknown';
-  const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+  const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
   return (
     <div>
@@ -180,12 +211,21 @@ export default function Transactions() {
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="tx-account">Account</label>
+                <label htmlFor="tx-account">{form.type === 'transfer' ? 'From Account' : 'Account'}</label>
                 <select id="tx-account" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })} required>
                   <option value="">Select account</option>
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
+              {form.type === 'transfer' && (
+                <div className="form-group">
+                  <label htmlFor="tx-to-account">To Account</label>
+                  <select id="tx-to-account" value={form.toAccountId} onChange={e => setForm({ ...form, toAccountId: e.target.value })} required>
+                    <option value="">Select destination</option>
+                    {accounts.filter(a => a.id !== Number(form.accountId)).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="form-group">
                 <label htmlFor="tx-amount">Amount</label>
                 <input id="tx-amount" type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="0.00" required />
