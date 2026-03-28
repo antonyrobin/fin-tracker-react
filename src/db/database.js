@@ -7,6 +7,7 @@ async function fetchD1(endpoint, options = {}) {
     headers: {
       'Authorization': `Bearer ${API_TOKEN}`,
       'Content-Type': 'application/json',
+      'Token': `${cookieStore.get('token')?.value}`,
       ...options.headers,
     }
   });
@@ -48,14 +49,14 @@ export async function registerUser({ name, email, password }) {
         createdAt: new Date().toISOString()
       })
     });
-    
+
     // Fallback: If the API doesn't return the ID, fetch it by email
     let id = res.meta?.last_row_id || res.data?.id;
     if (!id) {
-      const getRes = await fetchD1(`/rest/users?email=${encodeURIComponent(email.toLowerCase().trim())}`);
+      const getRes = await fetchD1(`/rest/register?email=${encodeURIComponent(email.toLowerCase().trim())}`);
       id = getRes.results?.[0]?.id;
     }
-    
+
     return { id, name, email: email.toLowerCase().trim() };
   } catch (err) {
     if (err.message.includes('UNIQUE constraint failed')) {
@@ -67,21 +68,23 @@ export async function registerUser({ name, email, password }) {
 
 export async function loginUser(email, password) {
   const hashedPassword = await hashPassword(password);
-  const res = await fetchD1(`/rest/users?email=${encodeURIComponent(email.toLowerCase().trim())}`);
-  
+  const res = await fetchD1(`/rest/login?email=${encodeURIComponent(email.toLowerCase().trim())}&password=${encodeURIComponent(hashedPassword)}`);
+
   if (!res.results || res.results.length === 0) {
     throw new Error('No account found with this email.');
   }
-  
+
   const user = res.results[0];
-  if (user.password !== hashedPassword) {
+  if (!res.token) {
     throw new Error('Incorrect password.');
+  } else {
+    cookieStore.set('token', res.token, { expires: 1 * 24 * 60 * 60 * 1000, path: '/', sameSite: 'strict', secure: true });
   }
   return { id: user.id, name: user.name, email: user.email };
 }
 
 export async function getUserById(id) {
-  const res = await fetchD1(`/rest/users/${id}`);
+  const res = await fetchD1(`/rest/getuser/${id}`);
   if (!res.results || res.results.length === 0) return null;
   const user = res.results[0];
   return { id: user.id, name: user.name, email: user.email };
@@ -104,7 +107,7 @@ export async function addAccount(account) {
     method: 'POST',
     body: JSON.stringify({ ...account, createdAt: new Date().toISOString() })
   });
-  
+
   let id = res.meta?.last_row_id || res.data?.id;
   if (!id && account.userId) {
     const getRes = await fetchD1(`/rest/accounts?userId=${account.userId}&sort_by=id&order=desc&limit=1`);
@@ -143,7 +146,7 @@ export async function addTransaction(transaction) {
     method: 'POST',
     body: JSON.stringify({ ...transaction, createdAt: new Date().toISOString() })
   });
-  
+
   let id = res.meta?.last_row_id || res.data?.id;
   if (!id && transaction.userId) {
     const getRes = await fetchD1(`/rest/transactions?userId=${transaction.userId}&sort_by=id&order=desc&limit=1`);
@@ -168,11 +171,11 @@ export async function bulkAddTransactions(transactions) {
   if (transactions.length === 0) return;
   const values = transactions.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
   const flatParams = transactions.flatMap(t => [
-    t.userId || null, t.accountId || null, t.type || null, t.amount || null, 
-    t.date || null, t.category || null, t.reference || null, t.description || null, 
+    t.userId || null, t.accountId || null, t.type || null, t.amount || null,
+    t.date || null, t.category || null, t.reference || null, t.description || null,
     new Date().toISOString()
   ]);
-  
+
   await queryD1(
     `INSERT INTO transactions (userId, accountId, type, amount, date, category, reference, description, createdAt) VALUES ${values};`,
     flatParams
@@ -198,7 +201,7 @@ export async function addReminder(reminder) {
     method: 'POST',
     body: JSON.stringify({ ...reminder, createdAt: new Date().toISOString() })
   });
-  
+
   let id = res.meta?.last_row_id || res.data?.id;
   if (!id && reminder.userId) {
     const getRes = await fetchD1(`/rest/reminders?userId=${reminder.userId}&sort_by=id&order=desc&limit=1`);
