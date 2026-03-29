@@ -2,12 +2,14 @@ const API_URL = import.meta.env.VITE_D1_API_URL;
 const API_TOKEN = import.meta.env.VITE_D1_API_TOKEN;
 
 async function fetchD1(endpoint, options = {}) {
+  const cookieToken = await cookieStore.get("token");
+  const token = cookieToken?.value
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {
       'Authorization': `Bearer ${API_TOKEN}`,
       'Content-Type': 'application/json',
-      'Token': `${cookieStore.get('token')?.value}`,
+      'Token': token,
       ...options.headers,
     }
   });
@@ -87,7 +89,17 @@ export async function loginUser(email, password) {
   }
 
   if (user.Token) {
-    cookieStore.set('token', user.Token, { expires: 1 * 24 * 60 * 60 * 1000, path: '/', sameSite: 'strict', secure: true });
+    // Expires in 1 day
+    const oneDayLater = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await cookieStore.set({
+      name: "token",
+      value: user.Token,
+      expires: oneDayLater,
+      path: "/",
+      sameSite: "strict",
+      secure: true
+    });
+
   }
 
   return { id: user.id, name: user.name, email: user.email };
