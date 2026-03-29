@@ -4,12 +4,15 @@ const API_TOKEN = import.meta.env.VITE_D1_API_TOKEN;
 async function fetchD1(endpoint, options = {}) {
   const cookieToken = await cookieStore.get("token");
   const token = cookieToken?.value
+  const cookieKey = await cookieStore.get("tokenKey");
+  const key = cookieKey?.value
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {
       'Authorization': `Bearer ${API_TOKEN}`,
       'Content-Type': 'application/json',
       'Token': token,
+      "TokenKey": key,
       ...options.headers,
     }
   });
@@ -90,10 +93,19 @@ export async function loginUser(email, password) {
 
   if (user.Token) {
     // Expires in 1 day
-    const oneDayLater = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const oneDayLater = new Date(Date.now() + 1 * 60 * 60 * 1000);
     await cookieStore.set({
       name: "token",
       value: user.Token,
+      expires: oneDayLater,
+      path: "/",
+      sameSite: "strict",
+      secure: true
+    });
+
+    await cookieStore.set({
+      name: "tokenKey",
+      value: user.TokenKey,
       expires: oneDayLater,
       path: "/",
       sameSite: "strict",
