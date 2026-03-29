@@ -16,9 +16,6 @@ async function fetchD1(endpoint, options = {}) {
   if (!res.ok || data.success === false) {
     throw new Error(data.error || data.message || 'D1 API Error');
   }
-  if (res.headers && res.headers.get('token')) {
-    cookieStore.set('token', res.headers.get('token'), { expires: 1 * 24 * 60 * 60 * 1000, path: '/', sameSite: 'strict', secure: true });
-  }
   return data;
 }
 
@@ -87,6 +84,10 @@ export async function loginUser(email, password) {
   const user = res.results[0];
   if (!user || !user.id) {
     throw new Error('Incorrect password.');
+  }
+
+  if (user.Token) {
+    cookieStore.set('token', user.Token, { expires: 1 * 24 * 60 * 60 * 1000, path: '/', sameSite: 'strict', secure: true });
   }
 
   return { id: user.id, name: user.name, email: user.email };
