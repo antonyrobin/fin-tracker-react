@@ -7,6 +7,8 @@ import Transactions from './components/Transactions';
 import Reminders from './components/Reminders';
 import ImportExport from './components/ImportExport';
 import AuthPage from './components/AuthPage';
+import TermsOfService from './components/TermsOfService';
+import PrivacyPolicy from './components/PrivacyPolicy';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -50,6 +52,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<AuthRoute><AuthPage /></AuthRoute>} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/*" element={
         <ProtectedRoute>
           <Layout>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { getAllReminders } from '../db/database';
 import { useAuth } from '../context/AuthContext';
 
@@ -96,8 +96,19 @@ export default function Layout({ children }) {
           </NavLink>
         </nav>
 
-        {/* Logout Button */}
+        {/* Footer with Legal & Logout */}
         <div className="sidebar-footer">
+          <div className="sidebar-legal">
+            <div className="sidebar-sec-note">
+              <span>🛡️</span>
+              <span>SEC-Inspired Security</span>
+            </div>
+            <div className="sidebar-legal-links">
+              <Link to="/terms" className="sidebar-legal-link" id="link-sidebar-terms">Terms</Link>
+              <span className="sidebar-legal-dot">·</span>
+              <Link to="/privacy" className="sidebar-legal-link" id="link-sidebar-privacy">Privacy</Link>
+            </div>
+          </div>
           <button className="nav-link logout-btn" onClick={handleLogout} id="btn-logout">
             <span className="nav-icon">🚪</span>
             Sign Out
