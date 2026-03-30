@@ -1782,7 +1782,25 @@ input[type="file"] {
 
 @media (max-width: 768px) {
   .auth-page-split {
-    flex-direction: column;
+    flex-direction: column-reverse;
+  }
+
+  .auth-form-panel {
+    width: 100%;
+    min-width: auto;
+    padding: var(--space-xl) var(--space-lg);
+  }
+
+  .auth-card-split {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .auth-logo-mobile {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-md);
   }
 
   .auth-info-panel {
@@ -1796,21 +1814,6 @@ input[type="file"] {
 
   .auth-features-grid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .auth-form-panel {
-    width: 100%;
-    min-width: auto;
-    padding: var(--space-lg);
-  }
-
-  .auth-card-split {
-    max-width: 100%;
-  }
-
-  .auth-logo-mobile {
-    display: flex !important;
-    margin-bottom: var(--space-md);
   }
 
   /* Legal page responsive */
