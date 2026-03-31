@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerUser, loginUser } from '../db/database';
 import { useAuth } from '../context/AuthContext';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const FEATURES = [
   {
@@ -42,6 +43,8 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [turnstileStatus, setTurnstileStatus] = useState('pending');
+  const [honeypot, setHoneypot] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -51,6 +54,16 @@ export default function AuthPage() {
 
     if (!termsAccepted) {
       setError('You must accept the Terms of Service and Privacy Policy to continue.');
+      return;
+    }
+
+    if (honeypot) {
+      setError('Bot behavior detected. Access denied.');
+      return;
+    }
+
+    if (turnstileStatus !== 'success') {
+      setError('Please complete the security challenge.');
       return;
     }
 
@@ -255,6 +268,29 @@ export default function AuthPage() {
                 />
               </div>
             )}
+
+            {/* Bot Prevention: Honeypot & Cloudflare Turnstile */}
+            <div style={{ display: 'none' }} aria-hidden="true">
+              <label htmlFor="auth-honeypot">Leave this field blank</label>
+              <input
+                id="auth-honeypot"
+                type="text"
+                name="auth_honeypot"
+                value={honeypot}
+                onChange={e => setHoneypot(e.target.value)}
+                tabIndex="-1"
+                autoComplete="off"
+              />
+            </div>
+
+            <div style={{ margin: 'var(--space-md) 0', display: 'flex', justifyContent: 'center', minHeight: '65px' }}>
+              <Turnstile
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                onSuccess={() => setTurnstileStatus('success')}
+                onError={() => setTurnstileStatus('error')}
+                onExpire={() => setTurnstileStatus('expired')}
+              />
+            </div>
 
             {/* Terms Checkbox */}
             <div className="auth-terms-check">
