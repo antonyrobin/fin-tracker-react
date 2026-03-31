@@ -79,23 +79,21 @@ export default function PrivacyPolicy() {
           <section className="legal-section">
             <h2>3. How Your Data is Stored</h2>
             <p>
-              All data is stored <strong>exclusively in your browser's local storage</strong>
-              (IndexedDB). This means:
+              All data is securely stored in a <strong>Cloudflare D1 database</strong>. This means:
             </p>
             <ul>
-              <li>Your data lives on your device — it never leaves your browser</li>
-              <li>No server-side databases store your information</li>
-              <li>No cloud synchronization occurs</li>
-              <li>Clearing browser data will permanently remove your FinTracker data</li>
+              <li>Your data is synced reliably and rapidly through Cloudflare's edge network</li>
+              <li>Passwords are securely hashed and never stored in plain text</li>
+              <li>Your sensitive data is protected using enterprise-grade infrastructure</li>
+              <li>You can request account deletion to permanently remove your data</li>
             </ul>
             <div className="legal-highlight">
               <span className="legal-highlight-icon">💡</span>
               <div>
-                <strong>Pro Tip</strong>
+                <strong>Data Portability</strong>
                 <p>
-                  Regularly export your data using the Import/Export feature to
-                  create backups. This protects you from data loss when clearing
-                  browser cache or switching devices.
+                  You have full control to export your data using the Import/Export feature
+                  to create your own offline backups whenever you need.
                 </p>
               </div>
             </div>
@@ -106,11 +104,10 @@ export default function PrivacyPolicy() {
             <div className="legal-highlight success">
               <span className="legal-highlight-icon">🚫</span>
               <div>
-                <strong>We Never Share Your Data</strong>
+                <strong>We Never Sell Your Data</strong>
                 <p>
-                  FinTracker does <strong>not</strong> share, sell, rent, or disclose your
-                  data to any third parties. Since data is stored locally and we have no
-                  access to it, third-party sharing is technically impossible.
+                  FinTracker does <strong>not</strong> share, sell, rent, or trade your
+                  personal data to any third parties or advertisers.
                 </p>
               </div>
             </div>
@@ -127,11 +124,11 @@ export default function PrivacyPolicy() {
           <section className="legal-section">
             <h2>5. Cookies & Tracking</h2>
             <p>
-              FinTracker uses only essential browser storage for application functionality:
+              FinTracker uses only essential browser mechanisms for application functionality:
             </p>
             <ul>
-              <li><strong>LocalStorage:</strong> Used only to maintain your login session</li>
-              <li><strong>IndexedDB:</strong> Used to store your financial data locally</li>
+              <li><strong>Local Storage/Cookies:</strong> Used strictly to securely maintain your login session</li>
+              <li><strong>Cloudflare Infrastructure:</strong> Used for secure data transfer and storage operations</li>
             </ul>
             <p>
               We do <strong>not</strong> use:
@@ -157,9 +154,9 @@ export default function PrivacyPolicy() {
                 <p>Passwords are hashed and never stored in plain text</p>
               </div>
               <div className="legal-sec-item">
-                <div className="legal-sec-badge">🏠</div>
-                <h4>Local Storage</h4>
-                <p>All data stays on your device — no remote servers</p>
+                <div className="legal-sec-badge">☁️</div>
+                <h4>Encrypted Transit</h4>
+                <p>All data between your browser and the database is secured</p>
               </div>
               <div className="legal-sec-item">
                 <div className="legal-sec-badge">🔍</div>
@@ -169,7 +166,7 @@ export default function PrivacyPolicy() {
               <div className="legal-sec-item">
                 <div className="legal-sec-badge">🧱</div>
                 <h4>Data Isolation</h4>
-                <p>Multi-user data is isolated by user ID</p>
+                <p>Multi-user data is strictly isolated within the database</p>
               </div>
             </div>
           </section>
@@ -177,13 +174,12 @@ export default function PrivacyPolicy() {
           <section className="legal-section">
             <h2>7. Your Rights</h2>
             <p>
-              Since your data is stored locally, you have <strong>full control</strong> at all times:
+              You maintain <strong>full control</strong> over your financial data at all times:
             </p>
             <ul>
               <li><strong>Access:</strong> View all your data directly within the application</li>
-              <li><strong>Export:</strong> Download all your data anytime via CSV export</li>
+              <li><strong>Export:</strong> Download all your data anytime via JSON/CSV export</li>
               <li><strong>Delete:</strong> Remove individual records or clear all data entirely</li>
-              <li><strong>Portability:</strong> Export and import data to move between devices</li>
               <li><strong>Modification:</strong> Edit or update any record at any time</li>
             </ul>
           </section>
