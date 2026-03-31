@@ -108,7 +108,7 @@ export default function Layout({ children }) {
               <span className="sidebar-legal-dot">·</span>
               <Link to="/privacy" className="sidebar-legal-link" id="link-sidebar-privacy">Privacy</Link>
               <span className="sidebar-legal-dot">·</span>
-              <a href="https://github.com/antonyrobin/developer-guide/issues/new" target="_blank" rel="noopener noreferrer" className="sidebar-legal-link" id="link-sidebar-report">Report Bug</a>
+              <a href="https://github.com/antonyrobin/fin-tracker-react/issues/new" target="_blank" rel="noopener noreferrer" className="sidebar-legal-link" id="link-sidebar-report">Report Bug</a>
             </div>
           </div>
           <button className="nav-link logout-btn" onClick={handleLogout} id="btn-logout">
