@@ -103,10 +103,12 @@ export default function Layout({ children }) {
               <span>🛡️</span>
               <span>SEC-Inspired Security</span>
             </div>
-            <div className="sidebar-legal-links">
+            <div className="sidebar-legal-links" style={{ flexWrap: 'wrap' }}>
               <Link to="/terms" className="sidebar-legal-link" id="link-sidebar-terms">Terms</Link>
               <span className="sidebar-legal-dot">·</span>
               <Link to="/privacy" className="sidebar-legal-link" id="link-sidebar-privacy">Privacy</Link>
+              <span className="sidebar-legal-dot">·</span>
+              <a href="https://github.com/antonyrobin/fin-tracker-react/issues/new" target="_blank" rel="noopener noreferrer" className="sidebar-legal-link" id="link-sidebar-report">Report Bug</a>
             </div>
           </div>
           <button className="nav-link logout-btn" onClick={handleLogout} id="btn-logout">

@@ -1180,7 +1180,7 @@ input[type="file"] {
 .auth-page-split {
   min-height: 100vh;
   display: flex;
-  background: var(--gradient-bg);
+  background: var(--bg-primary); /* Base matches the right panel form background */
 }
 
 /* Left Info Panel */
@@ -1351,6 +1351,10 @@ input[type="file"] {
   justify-content: center;
   padding: var(--space-xl);
   background: var(--bg-primary);
+
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .auth-card-split {
@@ -1789,6 +1793,10 @@ input[type="file"] {
     width: 100%;
     min-width: auto;
     padding: var(--space-xl) var(--space-lg);
+    
+    /* Reset sticky for mobile */
+    position: relative;
+    height: auto;
   }
 
   .auth-card-split {
