@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [filterAccount, setFilterAccount] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -22,12 +23,14 @@ export default function Dashboard() {
   }, [user]);
 
   async function loadData() {
+    if (!transactions.length && !accounts.length) setLoading(true);
     const [acc, txn, rem] = await Promise.all([
       getAllAccounts(user.id), getAllTransactions(user.id), getAllReminders(user.id),
     ]);
     setAccounts(acc);
     setTransactions(txn);
     setReminders(rem);
+    setLoading(false);
   }
 
   const filtered = useMemo(() => {
@@ -121,6 +124,31 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {loading ? (
+        <div>
+          {/* Skeleton for summary cards */}
+          <div className="summary-grid">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="card summary-card">
+                <div className="skeleton skeleton-icon"></div>
+                <div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
+                <div className="skeleton skeleton-text-lg" style={{ width: '80%' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '40%' }}></div>
+              </div>
+            ))}
+          </div>
+          {/* Skeleton for charts */}
+          <div className="charts-grid">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="card chart-card">
+                <div className="skeleton skeleton-text" style={{ width: '40%' }}></div>
+                <div className="skeleton skeleton-chart"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+      <div>
       {/* Filters */}
       <div className="filter-bar">
         <select value={filterAccount} onChange={e => setFilterAccount(e.target.value)} id="filter-account">
@@ -276,6 +304,8 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }

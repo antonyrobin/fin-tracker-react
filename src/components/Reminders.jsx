@@ -11,15 +11,18 @@ export default function Reminders() {
   const [form, setForm] = useState({
     title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none',
   });
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => { loadData(); }, [user]);
 
   async function loadData() {
     if (!user) return;
+    if (!reminders.length && !accounts.length) setLoading(true);
     const [rem, acc] = await Promise.all([getAllReminders(user.id), getAllAccounts(user.id)]);
     setReminders(rem.sort((a, b) => a.dueDate.localeCompare(b.dueDate)));
     setAccounts(acc);
+    setLoading(false);
   }
 
   function openAdd() {
@@ -151,6 +154,29 @@ export default function Reminders() {
         </button>
       </div>
 
+      {loading ? (
+        <div>
+          <div className="tab-nav">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="skeleton skeleton-tab"></div>
+            ))}
+          </div>
+          <div className="reminder-list">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="card reminder-card">
+                <div className="skeleton skeleton-icon-circle"></div>
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '40%', marginTop: '8px' }}></div>
+                </div>
+                <div className="skeleton skeleton-text" style={{ width: '80px' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '60px' }}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+      <div>
       {/* Tabs */}
       <div className="tab-nav">
         <button className={`tab-btn ${filterTab === 'all' ? 'active' : ''}`} onClick={() => setFilterTab('all')}>
@@ -277,6 +303,8 @@ export default function Reminders() {
             </form>
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   );

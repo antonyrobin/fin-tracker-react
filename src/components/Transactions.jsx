@@ -22,14 +22,17 @@ export default function Transactions() {
     type: 'expense', accountId: '', toAccountId: '', amount: '', date: new Date().toISOString().split('T')[0],
     description: '', category: 'Other', reference: '',
   });
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => { loadData(); }, [user]);
 
   async function loadData() {
+    if (!transactions.length && !accounts.length) setLoading(true);
     const [txn, acc] = await Promise.all([getAllTransactions(user.id), getAllAccounts(user.id)]);
     setTransactions(txn.sort((a, b) => b.date.localeCompare(a.date)));
     setAccounts(acc);
+    setLoading(false);
   }
 
   const filtered = useMemo(() => {
@@ -124,12 +127,35 @@ export default function Transactions() {
       <div className="page-header">
         <div>
           <h2>Transactions</h2>
-          <p>{filtered.length} transaction{filtered.length !== 1 ? 's' : ''} found</p>
+          <p>{loading ? '' : `${filtered.length} transaction${filtered.length !== 1 ? 's' : ''} found`}</p>
         </div>
         <button className="btn btn-primary" onClick={openAdd} id="btn-add-transaction">
           <span>+</span> Add Transaction
         </button>
       </div>
+
+      {loading ? (
+        <div>
+          <div className="filter-bar">
+            <div className="skeleton skeleton-input"></div>
+            <div className="skeleton skeleton-input"></div>
+            <div className="skeleton skeleton-input" style={{ flex: 1 }}></div>
+          </div>
+          <div className="card">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="skeleton-row">
+                <div className="skeleton skeleton-text" style={{ width: '15%' }}></div>
+                <div className="skeleton skeleton-badge"></div>
+                <div className="skeleton skeleton-text" style={{ width: '25%' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '12%' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '15%' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '10%' }}></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+      <div>
 
       {/* Filters */}
       <div className="filter-bar">
@@ -174,18 +200,18 @@ export default function Transactions() {
             <tbody>
               {filtered.map(txn => (
                 <tr key={txn.id}>
-                  <td>{new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                  <td><span className={`badge badge-${txn.type}`}>{txn.type}</span></td>
-                  <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                  <td data-label="Date">{new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  <td data-label="Type"><span className={`badge badge-${txn.type}`}>{txn.type}</span></td>
+                  <td data-label="Description" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                     {txn.description || '—'}
                     {txn.reference && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ref: {txn.reference}</div>}
                   </td>
-                  <td>{txn.category || '—'}</td>
-                  <td>{getAccountName(txn.accountId)}</td>
-                  <td style={{ fontWeight: 700, color: txn.type === 'income' || txn.type === 'credit' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                  <td data-label="Category">{txn.category || '—'}</td>
+                  <td data-label="Account">{getAccountName(txn.accountId)}</td>
+                  <td data-label="Amount" style={{ fontWeight: 700, color: txn.type === 'income' || txn.type === 'credit' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
                     {txn.type === 'income' || txn.type === 'credit' ? '+' : '-'}{fmt(txn.amount)}
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="inline-flex">
                       <button className="btn btn-outline btn-sm" onClick={() => openEdit(txn)} title="Edit">✏️</button>
                       <button className="btn btn-outline btn-sm" onClick={() => handleDelete(txn.id)} title="Delete" style={{ color: 'var(--accent-rose)' }}>🗑️</button>
@@ -255,6 +281,8 @@ export default function Transactions() {
             </form>
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   );

@@ -14,14 +14,17 @@ export default function Accounts() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', type: 'savings', balance: '', description: '' });
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => { loadData(); }, [user]);
 
   async function loadData() {
+    if (!accounts.length && !transactions.length) setLoading(true);
     const [acc, txn] = await Promise.all([getAllAccounts(user.id), getAllTransactions(user.id)]);
     setAccounts(acc);
     setTransactions(txn);
+    setLoading(false);
   }
 
   function getAccountBalance(accountId) {
@@ -84,7 +87,19 @@ export default function Accounts() {
         </button>
       </div>
 
-      {accounts.length === 0 ? (
+      {loading ? (
+        <div className="accounts-grid">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="card account-card">
+              <div className="skeleton skeleton-icon-circle" style={{ width: 48, height: 48 }}></div>
+              <div className="skeleton skeleton-text" style={{ width: '60%', marginTop: 12 }}></div>
+              <div className="skeleton skeleton-text" style={{ width: '30%', marginTop: 8 }}></div>
+              <div className="skeleton skeleton-text-lg" style={{ width: '50%', marginTop: 16 }}></div>
+              <div className="skeleton skeleton-text" style={{ width: '70%', marginTop: 8 }}></div>
+            </div>
+          ))}
+        </div>
+      ) : accounts.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <div className="empty-icon">🏦</div>
