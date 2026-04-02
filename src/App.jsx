@@ -1,14 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import Accounts from './components/Accounts';
-import Transactions from './components/Transactions';
-import Reminders from './components/Reminders';
-import ImportExport from './components/ImportExport';
 import AuthPage from './components/AuthPage';
-import TermsOfService from './components/TermsOfService';
-import PrivacyPolicy from './components/PrivacyPolicy';
+
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Accounts = lazy(() => import('./components/Accounts'));
+const Transactions = lazy(() => import('./components/Transactions'));
+const Reminders = lazy(() => import('./components/Reminders'));
+const ImportExport = lazy(() => import('./components/ImportExport'));
+const TermsOfService = lazy(() => import('./components/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -50,6 +52,7 @@ function AuthRoute({ children }) {
 
 function AppRoutes() {
   return (
+    <Suspense fallback={null}>
     <Routes>
       <Route path="/login" element={<AuthRoute><AuthPage /></AuthRoute>} />
       <Route path="/terms" element={<TermsOfService />} />
@@ -57,6 +60,7 @@ function AppRoutes() {
       <Route path="/*" element={
         <ProtectedRoute>
           <Layout>
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/accounts" element={<Accounts />} />
@@ -65,10 +69,12 @@ function AppRoutes() {
               <Route path="/import-export" element={<ImportExport />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
           </Layout>
         </ProtectedRoute>
       } />
     </Routes>
+    </Suspense>
   );
 }
 
