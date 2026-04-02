@@ -385,4 +385,11 @@ High-level user journey:
 
 ## License and Ownership
 
-This repository does not currently define a license in `package.json` or the root documentation. Add a license file if you want to publish or distribute the project with explicit usage terms.
+This project is licensed under the MIT License.
+
+Files updated for licensing:
+
+- `LICENSE`
+- `package.json`
+
+The MIT license allows commercial and private use, modification, distribution, and sublicensing, provided the original copyright and license notice remain included.
