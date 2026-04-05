@@ -1,25 +1,67 @@
 const API_URL = import.meta.env.VITE_D1_API_URL;
 const API_TOKEN = import.meta.env.VITE_D1_API_TOKEN;
 
+// ─── Cookie Helpers (cookieStore fallback for Firefox) ───
+function getCookie(name) {
+  if (typeof cookieStore !== 'undefined') {
+    return cookieStore.get(name).then(c => c?.value || null);
+  }
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return Promise.resolve(match ? decodeURIComponent(match[1]) : null);
+}
+
+function setCookie(name, value, expires) {
+  if (typeof cookieStore !== 'undefined') {
+    return cookieStore.set({ name, value, expires, path: '/', sameSite: 'strict', secure: true });
+  }
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/; SameSite=Strict; Secure`;
+  return Promise.resolve();
+}
+
+export function deleteCookie(name) {
+  if (typeof cookieStore !== 'undefined') {
+    return cookieStore.delete({ name, path: '/' });
+  }
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict; Secure`;
+  return Promise.resolve();
+}
+
+// ─── Error Message Sanitization ──────────────────────────
+const ERROR_MAP = {
+  'UNIQUE constraint failed': 'An account with this email already exists.',
+  'D1 API Error': 'Something went wrong. Please try again later.',
+  'SQLITE': 'Something went wrong. Please try again later.',
+  'no such table': 'Service temporarily unavailable. Please try again later.',
+};
+
+function sanitizeError(message) {
+  for (const [pattern, friendly] of Object.entries(ERROR_MAP)) {
+    if (message.toLowerCase().includes(pattern.toLowerCase())) {
+      return friendly;
+    }
+  }
+  if (/sql|table|column|constraint|undefined|null reference|typeerror|stack/i.test(message)) {
+    return 'Something went wrong. Please try again later.';
+  }
+  return message;
+}
+
 async function fetchD1(endpoint, options = {}) {
-  const cookieToken = await cookieStore.get("token");
-  const token = cookieToken?.value
-  const cookieKey = await cookieStore.get("tokenKey");
-  const key = cookieKey?.value
+  const token = await getCookie('token');
+  const key = await getCookie('tokenKey');
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {
       'Authorization': `Bearer ${API_TOKEN}`,
       'Content-Type': 'application/json',
       'Token': token,
-      "TokenKey": key,
+      'TokenKey': key,
       ...options.headers,
     }
   });
   const data = await res.json();
-  // Handle both standard REST success (res.ok) and explicit {"success": false} schemas
   if (!res.ok || data.success === false) {
-    throw new Error(data.error || data.message || 'D1 API Error');
+    throw new Error(sanitizeError(data.error || data.message || 'D1 API Error'));
   }
   return data;
 }
@@ -64,10 +106,7 @@ export async function registerUser({ name, email, password }) {
 
     return { id, name, email: email.toLowerCase().trim() };
   } catch (err) {
-    if (err.message.includes('UNIQUE constraint failed')) {
-      throw new Error('An account with this email already exists.');
-    }
-    throw err;
+    throw new Error(sanitizeError(err.message));
   }
 }
 
@@ -92,26 +131,10 @@ export async function loginUser(email, password) {
   }
 
   if (user.Token) {
-    // Expires in 1 day
-    const oneDayLater = new Date(Date.now() + 1 * 60 * 60 * 1000);
-    await cookieStore.set({
-      name: "token",
-      value: user.Token,
-      expires: oneDayLater,
-      path: "/",
-      sameSite: "strict",
-      secure: true
-    });
-
-    await cookieStore.set({
-      name: "tokenKey",
-      value: user.TokenKey,
-      expires: oneDayLater,
-      path: "/",
-      sameSite: "strict",
-      secure: true
-    });
-
+    // Expires in 1 day (24 hours)
+    const oneDayLater = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await setCookie('token', user.Token, oneDayLater);
+    await setCookie('tokenKey', user.TokenKey, oneDayLater);
   }
 
   return { id: user.id, name: user.name, email: user.email };

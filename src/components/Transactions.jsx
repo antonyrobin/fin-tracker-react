@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const TYPES = ['income', 'expense', 'transfer', 'credit', 'debit'];
 const CATEGORIES = [
   'Salary', 'Freelance', 'Business', 'Investment',
-  'Food', 'Transport', 'Shopping', 'Bills', 'Rent', 'Entertainment',
+  'Food', 'Fuel', 'Shopping', 'Bills', 'Rent', 'Entertainment',
   'Health', 'Education', 'Travel', 'Insurance', 'Loan EMI',
   'Transfer', 'Other',
 ];
