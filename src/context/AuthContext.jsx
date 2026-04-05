@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getUserById } from '../db/database';
+import { getUserById, deleteCookie } from '../db/database';
 
 const AuthContext = createContext(null);
 
@@ -37,9 +37,11 @@ export function AuthProvider({ children }) {
     localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: userData.id }));
   }
 
-  function logout() {
+  async function logout() {
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
+    await deleteCookie('token');
+    await deleteCookie('tokenKey');
   }
 
   return (

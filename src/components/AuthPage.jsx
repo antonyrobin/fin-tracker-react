@@ -77,8 +77,20 @@ export default function AuthPage() {
         setError('Please enter your name.');
         return;
       }
-      if (form.password.length < 6) {
-        setError('Password must be at least 6 characters.');
+      if (form.password.length < 8) {
+        setError('Password must be at least 8 characters.');
+        return;
+      }
+      if (!/[A-Z]/.test(form.password)) {
+        setError('Password must contain at least one uppercase letter.');
+        return;
+      }
+      if (!/[a-z]/.test(form.password)) {
+        setError('Password must contain at least one lowercase letter.');
+        return;
+      }
+      if (!/[0-9]/.test(form.password)) {
+        setError('Password must contain at least one digit.');
         return;
       }
       if (form.password !== form.confirmPassword) {
@@ -101,7 +113,7 @@ export default function AuthPage() {
       }
       login(userData);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -251,7 +263,7 @@ export default function AuthPage() {
                 type="password"
                 value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
-                placeholder={isLogin ? 'Enter your password' : 'At least 6 characters'}
+                placeholder={isLogin ? 'Enter your password' : 'Min 8 chars: upper, lower & digit'}
                 required
               />
             </div>
