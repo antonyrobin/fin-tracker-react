@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { getAllReminders, addReminder, updateReminder, deleteReminder, getAllAccounts, addTransaction, deleteTransaction } from '../db/database';
 import { useAuth } from '../context/AuthContext';
 
+const CATEGORIES = [
+  'Salary', 'Freelance', 'Business', 'Investment',
+  'Food', 'Fuel', 'Shopping', 'Bills', 'Rent', 'Entertainment',
+  'Health', 'Education', 'Travel', 'Insurance', 'Loan EMI',
+  'Transfer', 'Other',
+];
+
 export default function Reminders() {
   const [reminders, setReminders] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -9,7 +16,7 @@ export default function Reminders() {
   const [editing, setEditing] = useState(null);
   const [filterTab, setFilterTab] = useState('all');
   const [form, setForm] = useState({
-    title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none',
+    title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other',
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -27,7 +34,7 @@ export default function Reminders() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none' });
+    setForm({ title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other' });
     setShowModal(true);
   }
 
@@ -36,6 +43,7 @@ export default function Reminders() {
     setForm({
       title: rem.title, type: rem.type, amount: rem.amount, dueDate: rem.dueDate,
       description: rem.description || '', accountId: rem.accountId || '', recurring: rem.recurring || 'none',
+      category: rem.category || 'Other',
     });
     setShowModal(true);
   }
@@ -68,7 +76,7 @@ export default function Reminders() {
         amount: Number(rem.amount) || 0,
         date: new Date().toISOString().split('T')[0],
         description: `Reminder: ${rem.title}`,
-        category: 'Other',
+        category: rem.category || 'Other',
         reference: 'Auto-generated',
         userId: user.id
       });
@@ -93,6 +101,7 @@ export default function Reminders() {
         description: rem.description || '',
         accountId: rem.accountId,
         recurring: rem.recurring,
+        category: rem.category || 'Other',
         completed: false,
         userId: user.id
       };
@@ -265,6 +274,12 @@ export default function Reminders() {
                 <select id="rem-type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                   <option value="payment">Payment (You owe)</option>
                   <option value="receivable">Receivable (You're owed)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="rem-category">Category</label>
+                <select id="rem-category" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div className="form-group">
