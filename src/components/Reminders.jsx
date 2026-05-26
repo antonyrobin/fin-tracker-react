@@ -19,7 +19,13 @@ export default function Reminders() {
     title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other',
   });
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const { user } = useAuth();
+
+  const generateIdempotencyKey = () => {
+    return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+  };
 
   useEffect(() => { loadData(); }, [user]);
 
@@ -35,6 +41,7 @@ export default function Reminders() {
   function openAdd() {
     setEditing(null);
     setForm({ title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other' });
+    setIdempotencyKey(generateIdempotencyKey());
     setShowModal(true);
   }
 
@@ -45,23 +52,27 @@ export default function Reminders() {
       description: rem.description || '', accountId: rem.accountId || '', recurring: rem.recurring || 'none',
       category: rem.category || 'Other',
     });
+    setIdempotencyKey(generateIdempotencyKey());
     setShowModal(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.title.trim() || !form.amount || !form.dueDate) return;
+    if (!form.title.trim() || !form.amount || !form.dueDate || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const data = { ...form, amount: Number(form.amount), accountId: form.accountId ? Number(form.accountId) : null, completed: false, userId: user.id };
       if (editing) {
-        await updateReminder({ ...editing, ...data, completed: editing.completed });
+        await updateReminder({ ...editing, ...data, completed: editing.completed }, { idempotencyKey });
       } else {
-        await addReminder(data);
+        await addReminder(data, { idempotencyKey });
       }
       setShowModal(false);
       loadData();
     } catch (err) {
       alert('Error: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -312,8 +323,10 @@ export default function Reminders() {
                 <input id="rem-desc" type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Additional details" />
               </div>
               <div className="form-actions">
-                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Add Reminder'}</button>
+                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)} disabled={isSubmitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Processing...' : (editing ? 'Update' : 'Add Reminder')}
+                </button>
               </div>
             </form>
           </div>

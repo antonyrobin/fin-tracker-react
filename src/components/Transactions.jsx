@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getAllTransactions, addTransaction, updateTransaction, deleteTransaction, getAllAccounts } from '../db/database';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,9 +24,46 @@ export default function Transactions() {
     description: '', category: 'Other', reference: '',
   });
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const RECORDS_PER_PAGE = 50;
+
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const generateIdempotencyKey = () => {
+    return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+  };
 
   useEffect(() => { loadData(); }, [user]);
+
+  useEffect(() => {
+    if (location.state && accounts.length > 0) {
+      const { preSelectAccountId, openAdd } = location.state;
+      if (preSelectAccountId) {
+        setFilterAccount(String(preSelectAccountId));
+        
+        if (openAdd) {
+          setEditing(null);
+          setForm({
+            type: 'expense',
+            accountId: String(preSelectAccountId),
+            toAccountId: '',
+            amount: '',
+            date: new Date().toISOString().split('T')[0],
+            description: '',
+            category: 'Other',
+            reference: ''
+          });
+          setIdempotencyKey(generateIdempotencyKey());
+          setShowModal(true);
+        }
+      }
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, accounts, navigate]);
 
   async function loadData() {
     if (!transactions.length && !accounts.length) setLoading(true);
@@ -46,12 +84,24 @@ export default function Transactions() {
     });
   }, [transactions, filterType, filterAccount, searchText]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, filterAccount, searchText]);
+
+  const totalPages = Math.ceil(filtered.length / RECORDS_PER_PAGE);
+
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * RECORDS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + RECORDS_PER_PAGE);
+  }, [filtered, currentPage]);
+
   function openAdd() {
     setEditing(null);
     setForm({
       type: 'expense', accountId: accounts[0]?.id || '', toAccountId: '', amount: '',
       date: new Date().toISOString().split('T')[0], description: '', category: 'Other', reference: '',
     });
+    setIdempotencyKey(generateIdempotencyKey());
     setShowModal(true);
   }
 
@@ -62,19 +112,32 @@ export default function Transactions() {
       date: txn.date, description: txn.description || '', category: txn.category || 'Other',
       reference: txn.reference || '',
     });
+    setIdempotencyKey(generateIdempotencyKey());
+    setShowModal(true);
+  }
+
+  function openRepeat(txn) {
+    setEditing(null);
+    setForm({
+      type: txn.type, accountId: txn.accountId, toAccountId: '', amount: txn.amount,
+      date: new Date().toISOString().split('T')[0], description: txn.description || '', category: txn.category || 'Other',
+      reference: '',
+    });
+    setIdempotencyKey(generateIdempotencyKey());
     setShowModal(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.amount || !form.accountId) return;
+    if (!form.amount || !form.accountId || isSubmitting) return;
     if (form.type === 'transfer' && !form.toAccountId) {
       alert('Please select a destination account for the transfer.');
       return;
     }
+    setIsSubmitting(true);
     try {
       if (form.type === 'transfer') {
-        // Handle Self Transfer as two transactions
+        // Handle Self Transfer as two transactions with safe, separate suffix idempotency keys
         await Promise.all([
           addTransaction({
             type: 'expense',
@@ -85,7 +148,7 @@ export default function Transactions() {
             category: 'Transfer',
             reference: form.reference,
             userId: user.id
-          }),
+          }, { idempotencyKey: `${idempotencyKey}-out` }),
           addTransaction({
             type: 'income',
             accountId: Number(form.toAccountId),
@@ -95,21 +158,23 @@ export default function Transactions() {
             category: 'Transfer',
             reference: form.reference,
             userId: user.id
-          })
+          }, { idempotencyKey: `${idempotencyKey}-in` })
         ]);
       } else {
         const data = { ...form, amount: Number(form.amount), accountId: Number(form.accountId), userId: user.id };
         delete data.toAccountId; // Clean up
         if (editing) {
-          await updateTransaction({ ...editing, ...data });
+          await updateTransaction({ ...editing, ...data }, { idempotencyKey });
         } else {
-          await addTransaction(data);
+          await addTransaction(data, { idempotencyKey });
         }
       }
       setShowModal(false);
       loadData();
     } catch (err) {
       alert('Error: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -184,7 +249,8 @@ export default function Transactions() {
           </div>
         </div>
       ) : (
-        <div className="table-container">
+        <>
+          <div className="table-container">
           <table>
             <thead>
               <tr>
@@ -198,7 +264,7 @@ export default function Transactions() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(txn => (
+              {paginatedTransactions.map(txn => (
                 <tr key={txn.id}>
                   <td data-label="Date">{new Date(txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td data-label="Type"><span className={`badge badge-${txn.type}`}>{txn.type}</span></td>
@@ -213,6 +279,7 @@ export default function Transactions() {
                   </td>
                   <td data-label="Actions">
                     <div className="inline-flex">
+                      <button className="btn btn-outline btn-sm" onClick={() => openRepeat(txn)} title="Repeat Payment">🔁</button>
                       <button className="btn btn-outline btn-sm" onClick={() => openEdit(txn)} title="Edit">✏️</button>
                       <button className="btn btn-outline btn-sm" onClick={() => handleDelete(txn.id)} title="Delete" style={{ color: 'var(--accent-rose)' }}>🗑️</button>
                     </div>
@@ -222,6 +289,41 @@ export default function Transactions() {
             </tbody>
           </table>
         </div>
+        
+        {filtered.length > 0 && (
+          <div className="pagination-bar flex-between mt-lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-lg)', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+              Showing {filtered.length === 0 ? 0 : (currentPage - 1) * RECORDS_PER_PAGE + 1} to {Math.min(currentPage * RECORDS_PER_PAGE, filtered.length)} of {filtered.length} entries
+            </div>
+            {totalPages > 1 && (
+              <div className="flex" style={{ display: 'flex', gap: '6px' }}>
+                <button className="btn btn-outline btn-sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+                  if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
+                    return (
+                      <button key={pageNum} className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-outline'}`} onClick={() => setCurrentPage(pageNum)}>
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                  if (pageNum === 2 && currentPage > 3) {
+                    return <span key="ellipsis-start" style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>...</span>;
+                  }
+                  if (pageNum === totalPages - 1 && currentPage < totalPages - 2) {
+                    return <span key="ellipsis-end" style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>...</span>;
+                  }
+                  return null;
+                })}
+                <button className="btn btn-outline btn-sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        </>
       )}
 
       {/* Modal */}
@@ -275,8 +377,10 @@ export default function Transactions() {
                 <input id="tx-ref" type="text" value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} placeholder="e.g. UPI123456" />
               </div>
               <div className="form-actions">
-                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Add Transaction'}</button>
+                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)} disabled={isSubmitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Processing...' : (editing ? 'Update' : 'Add Transaction')}
+                </button>
               </div>
             </form>
           </div>
