@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAllAccounts, addAccount, updateAccount, deleteAccount, getAllTransactions } from '../db/database';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,6 +17,7 @@ export default function Accounts() {
   const [form, setForm] = useState({ name: '', type: 'savings', balance: '', description: '' });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => { loadData(); }, [user]);
 
@@ -126,10 +128,18 @@ export default function Accounts() {
                   </div>
                 )}
                 <div className="account-balance">{fmt(currentBalance)}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {txnCount} transaction{txnCount !== 1 ? 's' : ''} · Initial: {fmt(Number(acc.balance) || 0)}
+                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  <span 
+                    onClick={() => navigate('/transactions', { state: { preSelectAccountId: acc.id } })}
+                    style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--accent-indigo)' }}
+                    title="View transactions"
+                  >
+                    {txnCount} transaction{txnCount !== 1 ? 's' : ''}
+                  </span>
+                  {' '}· Initial: {fmt(Number(acc.balance) || 0)}
                 </div>
                 <div className="account-actions">
+                  <button className="btn btn-outline btn-sm" onClick={() => navigate('/transactions', { state: { preSelectAccountId: acc.id, openAdd: true } })}>➕ Txn</button>
                   <button className="btn btn-outline btn-sm" onClick={() => openEdit(acc)}>✏️ Edit</button>
                   <button className="btn btn-outline btn-sm" onClick={() => handleDelete(acc.id)} style={{ color: 'var(--accent-rose)' }}>🗑️ Delete</button>
                 </div>

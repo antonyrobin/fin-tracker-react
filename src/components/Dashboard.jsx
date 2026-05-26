@@ -3,18 +3,29 @@ import { getAllAccounts, getAllTransactions, getAllReminders } from '../db/datab
 import { useAuth } from '../context/AuthContext';
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
+  AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
 const COLORS = ['#6366f1', '#a855f7', '#22d3ee', '#34d399', '#fbbf24', '#fb7185', '#fb923c', '#818cf8'];
 
 export default function Dashboard() {
+  const defaultDateFrom = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 3);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const defaultDateTo = useMemo(() => {
+    return new Date().toISOString().split('T')[0];
+  }, []);
+
   const [accounts, setAccounts] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [filterAccount, setFilterAccount] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(defaultDateFrom);
+  const [dateTo, setDateTo] = useState(defaultDateTo);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -97,6 +108,89 @@ export default function Dashboard() {
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [filtered]);
 
+  // Monthly average balance calculation
+  const averageBalanceData = useMemo(() => {
+    const activeAccounts = accounts.filter(a => filterAccount === 'all' || a.id === Number(filterAccount));
+    const initialBalance = activeAccounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+
+    const activeTransactions = transactions.filter(t => {
+      if (filterAccount !== 'all' && t.accountId !== Number(filterAccount)) return false;
+      return true;
+    });
+
+    if (activeTransactions.length === 0) {
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      return [{ month: currentMonth, avgBalance: initialBalance }];
+    }
+
+    const sortedTxns = [...activeTransactions].sort((a, b) => a.date.localeCompare(b.date));
+    const startDateStr = sortedTxns[0].date;
+    const endDateStr = new Date().toISOString().split('T')[0];
+
+    if (startDateStr > endDateStr) {
+      const currentMonth = endDateStr.substring(0, 7);
+      return [{ month: currentMonth, avgBalance: initialBalance }];
+    }
+
+    const txnsByDate = {};
+    sortedTxns.forEach(t => {
+      if (!txnsByDate[t.date]) txnsByDate[t.date] = [];
+      txnsByDate[t.date].push(t);
+    });
+
+    const dailyBalances = [];
+    let currentBalance = initialBalance;
+
+    const parts = startDateStr.split('-');
+    let currentDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    const endDateParts = endDateStr.split('-');
+    const endDate = new Date(Date.UTC(Number(endDateParts[0]), Number(endDateParts[1]) - 1, Number(endDateParts[2])));
+
+    let iterations = 0;
+    while (currentDate <= endDate && iterations < 3650) {
+      iterations++;
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      const dayTxns = txnsByDate[dateStr] || [];
+      dayTxns.forEach(t => {
+        const amt = Number(t.amount) || 0;
+        if (t.type === 'income' || t.type === 'credit') {
+          currentBalance += amt;
+        } else if (t.type === 'expense' || t.type === 'debit') {
+          currentBalance -= amt;
+        }
+      });
+
+      dailyBalances.push({
+        date: dateStr,
+        month: dateStr.substring(0, 7),
+        balance: currentBalance
+      });
+
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    }
+
+    const monthlyGroups = {};
+    dailyBalances.forEach(db => {
+      if (!monthlyGroups[db.month]) {
+        monthlyGroups[db.month] = { sum: 0, count: 0 };
+      }
+      monthlyGroups[db.month].sum += db.balance;
+      monthlyGroups[db.month].count += 1;
+    });
+
+    const result = Object.entries(monthlyGroups).map(([month, data]) => ({
+      month,
+      avgBalance: Math.round((data.sum / data.count) * 100) / 100
+    })).sort((a, b) => a.month.localeCompare(b.month));
+
+    return result.filter(r => {
+      if (dateFrom && r.month < dateFrom.substring(0, 7)) return false;
+      if (dateTo && r.month > dateTo.substring(0, 7)) return false;
+      return true;
+    });
+  }, [accounts, transactions, filterAccount, dateFrom, dateTo]);
+
   // Type breakdown for pie
   const typeData = useMemo(() => {
     return [
@@ -158,8 +252,8 @@ export default function Dashboard() {
         <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} id="filter-date-from" />
         <span style={{ color: 'var(--text-muted)' }}>to</span>
         <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} id="filter-date-to" />
-        {(filterAccount !== 'all' || dateFrom || dateTo) && (
-          <button className="btn btn-outline btn-sm" onClick={() => { setFilterAccount('all'); setDateFrom(''); setDateTo(''); }}>
+        {(filterAccount !== 'all' || dateFrom !== defaultDateFrom || dateTo !== defaultDateTo) && (
+          <button className="btn btn-outline btn-sm" onClick={() => { setFilterAccount('all'); setDateFrom(defaultDateFrom); setDateTo(defaultDateTo); }}>
             ✕ Clear Filters
           </button>
         )}
@@ -278,6 +372,35 @@ export default function Dashboard() {
           ) : (
             <div className="empty-state">
               <div className="empty-icon">🥧</div>
+              <p>No data for the selected filters</p>
+            </div>
+          )}
+        </div>
+
+        <div className="card chart-card">
+          <h3>Average Monthly Balance</h3>
+          {averageBalanceData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={averageBalanceData}>
+                <defs>
+                  <linearGradient id="avgBalanceGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#0284c7" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(2,132,199,0.1)" />
+                <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
+                <Tooltip
+                  formatter={(value) => [fmt(value), 'Average Balance']}
+                  contentStyle={{ background: '#ffffff', border: '1px solid rgba(2,132,199,0.2)', borderRadius: 8, color: '#0f172a' }}
+                />
+                <Area type="monotone" dataKey="avgBalance" stroke="#0284c7" strokeWidth={3} fillOpacity={1} fill="url(#avgBalanceGrad)" name="Avg Balance" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">📈</div>
               <p>No data for the selected filters</p>
             </div>
           )}

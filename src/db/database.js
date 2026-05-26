@@ -46,25 +46,61 @@ function sanitizeError(message) {
   return message;
 }
 
+const processedIdempotentKeys = new Map();
+
 async function fetchD1(endpoint, options = {}) {
   const token = await getCookie('token');
   const key = await getCookie('tokenKey');
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Authorization': `Bearer ${API_TOKEN}`,
-      'Content-Type': 'application/json',
-      'Token': token,
-      'TokenKey': key,
-      ...options.headers,
+  
+  const idempotencyKey = options.idempotencyKey || options.headers?.['Idempotency-Key'];
+  if (idempotencyKey) {
+    if (processedIdempotentKeys.has(idempotencyKey)) {
+      console.log(`[Idempotency] Duplicate request detected for key: ${idempotencyKey}. Returning cached promise.`);
+      return processedIdempotentKeys.get(idempotencyKey);
     }
-  });
-  const data = await res.json();
-  if (!res.ok || data.success === false) {
-    throw new Error(sanitizeError(data.error || data.message || 'D1 API Error'));
   }
-  return data;
+
+  const fetchPromise = (async () => {
+    try {
+      const headers = {
+        'Authorization': `Bearer ${API_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Token': token,
+        'TokenKey': key,
+        ...options.headers,
+      };
+      if (idempotencyKey) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
+
+      const { idempotencyKey: _, ...fetchOptions } = options;
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        ...fetchOptions,
+        headers
+      });
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        throw new Error(sanitizeError(data.error || data.message || 'D1 API Error'));
+      }
+      return data;
+    } catch (err) {
+      if (idempotencyKey) {
+        processedIdempotentKeys.delete(idempotencyKey);
+      }
+      throw err;
+    }
+  })();
+
+  if (idempotencyKey) {
+    processedIdempotentKeys.set(idempotencyKey, fetchPromise);
+    setTimeout(() => {
+      processedIdempotentKeys.delete(idempotencyKey);
+    }, 5 * 60 * 1000);
+  }
+
+  return fetchPromise;
 }
+
 
 // Used for complex or chained queries
 async function queryD1(sql, params = []) {
@@ -159,10 +195,11 @@ export async function getAccount(id) {
   return res.results?.[0] || null;
 }
 
-export async function addAccount(account) {
+export async function addAccount(account, options = {}) {
   const res = await fetchD1('/rest/accounts', {
     method: 'POST',
-    body: JSON.stringify({ ...account, createdAt: new Date().toISOString() })
+    body: JSON.stringify({ ...account, createdAt: new Date().toISOString() }),
+    ...options
   });
 
   let id = res.meta?.last_row_id || res.data?.id;
@@ -173,17 +210,18 @@ export async function addAccount(account) {
   return id;
 }
 
-export async function updateAccount(account) {
+export async function updateAccount(account, options = {}) {
   const { id, ...data } = account;
   return fetchD1(`/rest/accounts/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    ...options
   });
 }
 
-export async function deleteAccount(id, userId) {
+export async function deleteAccount(id, userId, options = {}) {
   await queryD1('DELETE FROM transactions WHERE accountId = ? AND userId = ?;', [Number(id), Number(userId)]);
-  return fetchD1(`/rest/accounts/${id}`, { method: 'DELETE' });
+  return fetchD1(`/rest/accounts/${id}`, { method: 'DELETE', ...options });
 }
 
 // ─── Transactions ────────────────────────────────────────
@@ -198,10 +236,11 @@ export async function getTransaction(id) {
   return res.results?.[0] || null;
 }
 
-export async function addTransaction(transaction) {
+export async function addTransaction(transaction, options = {}) {
   const res = await fetchD1('/rest/transactions', {
     method: 'POST',
-    body: JSON.stringify({ ...transaction, createdAt: new Date().toISOString() })
+    body: JSON.stringify({ ...transaction, createdAt: new Date().toISOString() }),
+    ...options
   });
 
   let id = res.meta?.last_row_id || res.data?.id;
@@ -212,19 +251,20 @@ export async function addTransaction(transaction) {
   return id;
 }
 
-export async function updateTransaction(transaction) {
+export async function updateTransaction(transaction, options = {}) {
   const { id, ...data } = transaction;
   return fetchD1(`/rest/transactions/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    ...options
   });
 }
 
-export async function deleteTransaction(id) {
-  return fetchD1(`/rest/transactions/${id}`, { method: 'DELETE' });
+export async function deleteTransaction(id, options = {}) {
+  return fetchD1(`/rest/transactions/${id}`, { method: 'DELETE', ...options });
 }
 
-export async function bulkAddTransactions(transactions) {
+export async function bulkAddTransactions(transactions, options = {}) {
   if (transactions.length === 0) return;
   const values = transactions.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
   const flatParams = transactions.flatMap(t => [
@@ -235,7 +275,8 @@ export async function bulkAddTransactions(transactions) {
 
   await queryD1(
     `INSERT INTO transactions (userId, accountId, type, amount, date, category, reference, description, createdAt) VALUES ${values};`,
-    flatParams
+    flatParams,
+    options
   );
 }
 
@@ -253,10 +294,11 @@ export async function getAllReminders(userId) {
   return formatReminders(res.results || []);
 }
 
-export async function addReminder(reminder) {
+export async function addReminder(reminder, options = {}) {
   const res = await fetchD1('/rest/reminders', {
     method: 'POST',
-    body: JSON.stringify({ ...reminder, createdAt: new Date().toISOString() })
+    body: JSON.stringify({ ...reminder, createdAt: new Date().toISOString() }),
+    ...options
   });
 
   let id = res.meta?.last_row_id || res.data?.id;
@@ -267,16 +309,17 @@ export async function addReminder(reminder) {
   return id;
 }
 
-export async function updateReminder(reminder) {
+export async function updateReminder(reminder, options = {}) {
   const { id, ...data } = reminder;
   return fetchD1(`/rest/reminders/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    ...options
   });
 }
 
-export async function deleteReminder(id) {
-  return fetchD1(`/rest/reminders/${id}`, { method: 'DELETE' });
+export async function deleteReminder(id, options = {}) {
+  return fetchD1(`/rest/reminders/${id}`, { method: 'DELETE', ...options });
 }
 
 // ─── Export All Data ─────────────────────────────────────
