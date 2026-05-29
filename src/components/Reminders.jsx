@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext';
 
 const CATEGORIES = [
   'Salary', 'Freelance', 'Business', 'Investment',
-  'Food', 'Fuel', 'Shopping', 'Bills', 'Rent', 'Entertainment',
-  'Health', 'Education', 'Travel', 'Insurance', 'Loan EMI',
+  'Food', 'Groceries', 'Fuel', 'Shopping', 'Bills', 'Rent', 'Entertainment',
+  'Health', 'Education', 'Travel', 'Insurance', 'Loan EMI', 'EMI',
+  'Maintenance', 'Donation', 'Subscription', 'Utilities', 'Recharge', 'Taxes',
   'Transfer', 'Other',
 ];
 
@@ -16,7 +17,7 @@ export default function Reminders() {
   const [editing, setEditing] = useState(null);
   const [filterTab, setFilterTab] = useState('all');
   const [form, setForm] = useState({
-    title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other',
+    title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other', fromTo: '',
   });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,7 +41,7 @@ export default function Reminders() {
 
   function openAdd() {
     setEditing(null);
-    setForm({ title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other' });
+    setForm({ title: '', type: 'payment', amount: '', dueDate: '', description: '', accountId: '', recurring: 'none', category: 'Other', fromTo: '' });
     setIdempotencyKey(generateIdempotencyKey());
     setShowModal(true);
   }
@@ -50,7 +51,7 @@ export default function Reminders() {
     setForm({
       title: rem.title, type: rem.type, amount: rem.amount, dueDate: rem.dueDate,
       description: rem.description || '', accountId: rem.accountId || '', recurring: rem.recurring || 'none',
-      category: rem.category || 'Other',
+      category: rem.category || 'Other', fromTo: rem.fromTo || '',
     });
     setIdempotencyKey(generateIdempotencyKey());
     setShowModal(true);
@@ -114,7 +115,8 @@ export default function Reminders() {
         recurring: rem.recurring,
         category: rem.category || 'Other',
         completed: false,
-        userId: user.id
+        userId: user.id,
+        fromTo: rem.fromTo || ''
       };
       const newRemId = await addReminder(newRem);
       updatedRem.nextReminderId = newRemId;
@@ -248,6 +250,7 @@ export default function Reminders() {
                     {rem.type === 'payment' ? 'Payment' : 'Receivable'}
                     {getAccountName(rem.accountId) && ` · ${getAccountName(rem.accountId)}`}
                     {rem.recurring !== 'none' && ` · 🔁 ${rem.recurring}`}
+                    {rem.fromTo && ` · 👤 ${rem.fromTo}`}
                   </div>
                   {rem.description && <div className="reminder-meta">{rem.description}</div>}
                 </div>
@@ -286,6 +289,10 @@ export default function Reminders() {
                   <option value="payment">Payment (You owe)</option>
                   <option value="receivable">Receivable (You're owed)</option>
                 </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="rem-fromto">From / To Name</label>
+                <input id="rem-fromto" type="text" value={form.fromTo} onChange={e => setForm({ ...form, fromTo: e.target.value })} placeholder="e.g. John, HDFC Bank" />
               </div>
               <div className="form-group">
                 <label htmlFor="rem-category">Category</label>

@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const Accounts = lazy(() => import('./components/Accounts'));
 const Transactions = lazy(() => import('./components/Transactions'));
 const Reminders = lazy(() => import('./components/Reminders'));
+const ReminderAnalytics = lazy(() => import('./components/ReminderAnalytics'));
 const ImportExport = lazy(() => import('./components/ImportExport'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
@@ -66,6 +67,7 @@ function AppRoutes() {
               <Route path="/accounts" element={<Accounts />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/reminders" element={<Reminders />} />
+              <Route path="/reminder-analytics" element={<ReminderAnalytics />} />
               <Route path="/import-export" element={<ImportExport />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

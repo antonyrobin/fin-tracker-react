@@ -108,6 +108,24 @@ export default function Dashboard() {
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [filtered]);
 
+  // Per-account income and expense stacked data
+  const accountIncomeExpenseData = useMemo(() => {
+    const map = {};
+    filtered.forEach(t => {
+      const accName = accounts.find(a => a.id === t.accountId)?.name || 'Unknown';
+      if (!map[accName]) {
+        map[accName] = { name: accName, income: 0, expense: 0 };
+      }
+      const amt = Number(t.amount) || 0;
+      if (t.type === 'income' || t.type === 'credit') {
+        map[accName].income += amt;
+      } else if (t.type === 'expense' || t.type === 'debit') {
+        map[accName].expense += amt;
+      }
+    });
+    return Object.values(map);
+  }, [filtered, accounts]);
+
   // Monthly average balance calculation
   const averageBalanceData = useMemo(() => {
     const activeAccounts = accounts.filter(a => filterAccount === 'all' || a.id === Number(filterAccount));
@@ -341,6 +359,31 @@ export default function Dashboard() {
             <div className="empty-state">
               <div className="empty-icon">📊</div>
               <p>No data for the selected filters</p>
+            </div>
+          )}
+        </div>
+
+        <div className="card chart-card">
+          <h3>Income & Expense by Account</h3>
+          {accountIncomeExpenseData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={accountIncomeExpenseData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(2,132,199,0.1)" />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
+                <Tooltip
+                  formatter={(value) => [fmt(value)]}
+                  contentStyle={{ background: '#ffffff', border: '1px solid rgba(2,132,199,0.2)', borderRadius: 8, color: '#0f172a' }}
+                />
+                <Legend />
+                <Bar dataKey="income" stackId="a" fill="#059669" name="Income" />
+                <Bar dataKey="expense" stackId="a" fill="#e11d48" name="Expense" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">📊</div>
+              <p>No account data for the selected filters</p>
             </div>
           )}
         </div>
