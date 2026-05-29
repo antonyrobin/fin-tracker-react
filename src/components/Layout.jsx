@@ -90,6 +90,10 @@ export default function Layout({ children }) {
             Reminders
             {upcomingCount > 0 && <span className="nav-badge">{upcomingCount}</span>}
           </NavLink>
+          <NavLink to="/reminder-analytics" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon">📋</span>
+            Reminder Analytics
+          </NavLink>
           <NavLink to="/import-export" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon">📁</span>
             Import / Export
