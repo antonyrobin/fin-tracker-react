@@ -90,6 +90,39 @@ export default function ReminderAnalytics() {
       .filter(r => r.type === 'receivable' && getDaysUntil(r.dueDate) >= 0 && getDaysUntil(r.dueDate) <= 7)
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
+    // From/To Net Summary
+    const fromToMap = {};
+    active.forEach(r => {
+      let name = (r.fromTo || '').trim();
+      if (!name || name === '-' || name === '—') {
+        name = '-';
+      }
+      
+      if (!fromToMap[name]) {
+        fromToMap[name] = { name, receivable: 0, payable: 0 };
+      }
+      
+      const amt = Number(r.amount) || 0;
+      if (r.type === 'receivable') {
+        fromToMap[name].receivable += amt;
+      } else if (r.type === 'payment') {
+        fromToMap[name].payable += amt;
+      }
+    });
+
+    const fromToSummary = Object.values(fromToMap)
+      .map(item => {
+        const net = item.receivable - item.payable;
+        return {
+          ...item,
+          net,
+          absNet: Math.abs(net),
+          status: net > 0 ? 'receivable' : 'payable'
+        };
+      })
+      .filter(item => item.net !== 0)
+      .sort((a, b) => b.absNet - a.absNet);
+
     return {
       next7Payable,
       next7Receivable,
@@ -97,6 +130,7 @@ export default function ReminderAnalytics() {
       receivablesAging,
       payablesNext7List,
       receivablesNext7List,
+      fromToSummary,
     };
   }, [reminders, today]);
 
@@ -282,6 +316,57 @@ export default function ReminderAnalytics() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Section D - From/To Net Summary */}
+          <div className="mt-xl">
+            <h3 className="analytics-section-title">From / To Net Summary</h3>
+            <div className="card mt-md">
+              {analytics.fromToSummary.length === 0 ? (
+                <div className="empty-state-sm" style={{ padding: 'var(--space-lg)', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <p>No From/To summary data available.</p>
+                </div>
+              ) : (
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th style={{ textAlign: 'right' }}>Total Receivable</th>
+                        <th style={{ textAlign: 'right' }}>Total Payable</th>
+                        <th style={{ textAlign: 'right' }}>Net Balance</th>
+                        <th style={{ textAlign: 'center' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analytics.fromToSummary.map((row, idx) => (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.name}</td>
+                          <td style={{ textAlign: 'right', color: row.receivable > 0 ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>
+                            {row.receivable > 0 ? fmt(row.receivable) : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right', color: row.payable > 0 ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
+                            {row.payable > 0 ? fmt(row.payable) : '—'}
+                          </td>
+                          <td style={{ 
+                            textAlign: 'right', 
+                            fontWeight: 700, 
+                            color: row.net > 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' 
+                          }}>
+                            {row.net > 0 ? '+' : ''}{fmt(row.net)}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span className={`badge badge-${row.status}`}>
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
