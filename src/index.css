@@ -586,6 +586,16 @@ table tbody tr:last-child td {
   color: var(--accent-rose);
 }
 
+.badge-receivable {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--accent-emerald);
+}
+
+.badge-payable {
+  background: rgba(251, 113, 133, 0.15);
+  color: var(--accent-rose);
+}
+
 .badge-credit {
   background: rgba(34, 211, 238, 0.15);
   color: var(--accent-cyan);

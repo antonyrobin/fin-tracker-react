@@ -284,7 +284,8 @@ export async function bulkAddTransactions(transactions, options = {}) {
 function formatReminders(reminders) {
   return reminders.map(r => ({
     ...r,
-    completed: r.completed === 1 || r.completed === true || r.completed === 'true'
+    completed: r.completed === 1 || r.completed === true || r.completed === 'true',
+    fromTo: r.fromTo || r.fromto || ''
   }));
 }
 

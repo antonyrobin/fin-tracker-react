@@ -85,6 +85,21 @@ export default function Transactions() {
     });
   }, [transactions, filterType, filterAccount, searchText]);
 
+  const filterTotals = useMemo(() => {
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let totalCredit = 0;
+    let totalDebit = 0;
+    filtered.forEach(t => {
+      const amt = Number(t.amount) || 0;
+      if (t.type === 'income') totalIncome += amt;
+      else if (t.type === 'expense') totalExpense += amt;
+      else if (t.type === 'credit') totalCredit += amt;
+      else if (t.type === 'debit') totalDebit += amt;
+    });
+    return { totalIncome, totalExpense, totalCredit, totalDebit };
+  }, [filtered]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [filterType, filterAccount, searchText]);
@@ -235,6 +250,23 @@ export default function Transactions() {
         </select>
         <input type="text" placeholder="🔍 Search description, category..." value={searchText}
           onChange={e => setSearchText(e.target.value)} id="search-transactions" style={{ minWidth: 240 }} />
+      </div>
+
+      {/* Summary Cards */}
+      <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <div className="card summary-card card-income">
+          <div className="card-icon">📈</div>
+          <div className="card-label">Total Income</div>
+          <div className="card-value" style={{ color: 'var(--accent-emerald)' }}>{fmt(filterTotals.totalIncome)}</div>
+          <div className="card-sub">Including credits: {fmt(filterTotals.totalCredit)}</div>
+        </div>
+
+        <div className="card summary-card card-expense">
+          <div className="card-icon">📉</div>
+          <div className="card-label">Total Expenses</div>
+          <div className="card-value" style={{ color: 'var(--accent-rose)' }}>{fmt(filterTotals.totalExpense)}</div>
+          <div className="card-sub">Including debits: {fmt(filterTotals.totalDebit)}</div>
+        </div>
       </div>
 
       {/* Table */}

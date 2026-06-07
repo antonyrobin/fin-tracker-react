@@ -376,8 +376,8 @@ export default function Dashboard() {
                   contentStyle={{ background: '#ffffff', border: '1px solid rgba(2,132,199,0.2)', borderRadius: 8, color: '#0f172a' }}
                 />
                 <Legend />
-                <Bar dataKey="income" stackId="a" fill="#059669" name="Income" />
-                <Bar dataKey="expense" stackId="a" fill="#e11d48" name="Expense" />
+                <Bar dataKey="income" fill="#059669" name="Income" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" fill="#e11d48" name="Expense" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
