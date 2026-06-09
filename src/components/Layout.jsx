@@ -94,6 +94,10 @@ export default function Layout({ children }) {
             <span className="nav-icon">📋</span>
             Reminder Analytics
           </NavLink>
+          <NavLink to="/predictions" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon">🔮</span>
+            Predictions
+          </NavLink>
           <NavLink to="/import-export" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon">📁</span>
             Import / Export
