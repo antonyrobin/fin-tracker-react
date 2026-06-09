@@ -17,8 +17,30 @@ export default function Transactions() {
   const [accounts, setAccounts] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  
   const [filterType, setFilterType] = useState('all');
   const [filterAccount, setFilterAccount] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  
+  const getDefaultDates = () => {
+    const today = new Date();
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
+    return {
+      start: threeMonthsAgo.toISOString().split('T')[0],
+      end: today.toISOString().split('T')[0]
+    };
+  };
+
+  const defaultDates = getDefaultDates();
+  const [datePreset, setDatePreset] = useState('3-months');
+  const [startDate, setStartDate] = useState(defaultDates.start);
+  const [endDate, setEndDate] = useState(defaultDates.end);
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [sortBy, setSortBy] = useState('date-desc');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   const [searchText, setSearchText] = useState('');
   const [form, setForm] = useState({
     type: 'expense', accountId: '', toAccountId: '', amount: '', date: new Date().toISOString().split('T')[0],
@@ -45,6 +67,10 @@ export default function Transactions() {
       const { preSelectAccountId, openAdd } = location.state;
       if (preSelectAccountId) {
         setFilterAccount(String(preSelectAccountId));
+        // Reset date filter to All Time when pre-selecting an account
+        setDatePreset('all');
+        setStartDate('');
+        setEndDate('');
         
         if (openAdd) {
           setEditing(null);
@@ -74,16 +100,116 @@ export default function Transactions() {
     setLoading(false);
   }
 
+  const handlePresetChange = (preset) => {
+    setDatePreset(preset);
+    if (preset === 'all') {
+      setStartDate('');
+      setEndDate('');
+    } else {
+      const today = new Date();
+      let start = new Date();
+      if (preset === '30-days') {
+        start.setDate(today.getDate() - 30);
+      } else if (preset === '3-months') {
+        start.setMonth(today.getMonth() - 3);
+      } else if (preset === '6-months') {
+        start.setMonth(today.getMonth() - 6);
+      } else if (preset === 'this-year') {
+        start = new Date(today.getFullYear(), 0, 1);
+      }
+      
+      if (preset !== 'custom') {
+        setStartDate(start.toISOString().split('T')[0]);
+        setEndDate(today.toISOString().split('T')[0]);
+      }
+    }
+  };
+
+  const handleStartDateChange = (val) => {
+    setStartDate(val);
+    setDatePreset('custom');
+  };
+
+  const handleEndDateChange = (val) => {
+    setEndDate(val);
+    setDatePreset('custom');
+  };
+
+  const resetFilters = () => {
+    setFilterType('all');
+    setFilterAccount('all');
+    setFilterCategory('all');
+    setSearchText('');
+    setMinAmount('');
+    setMaxAmount('');
+    setSortBy('date-desc');
+    setDatePreset('3-months');
+    const defaultDates = getDefaultDates();
+    setStartDate(defaultDates.start);
+    setEndDate(defaultDates.end);
+  };
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterType !== 'all') count++;
+    if (filterAccount !== 'all') count++;
+    if (filterCategory !== 'all') count++;
+    if (minAmount !== '') count++;
+    if (maxAmount !== '') count++;
+    if (datePreset !== 'all') count++;
+    if (searchText !== '') count++;
+    return count;
+  }, [filterType, filterAccount, filterCategory, minAmount, maxAmount, datePreset, searchText]);
+
+  const dateRangeLabel = useMemo(() => {
+    if (datePreset === 'all') return 'All Time';
+    if (!startDate && !endDate) return 'All Time';
+    
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    if (startDate && endDate) {
+      return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    } else if (startDate) {
+      return `From ${formatDate(startDate)}`;
+    } else {
+      return `Until ${formatDate(endDate)}`;
+    }
+  }, [datePreset, startDate, endDate]);
+
   const filtered = useMemo(() => {
-    return transactions.filter(t => {
+    const res = transactions.filter(t => {
       if (filterType !== 'all' && t.type !== filterType) return false;
       if (filterAccount !== 'all' && t.accountId !== Number(filterAccount)) return false;
+      if (filterCategory !== 'all' && t.category !== filterCategory) return false;
+      
+      // Date filtering
+      if (startDate && t.date < startDate) return false;
+      if (endDate && t.date > endDate) return false;
+      
+      // Amount range filtering
+      const amt = Number(t.amount) || 0;
+      if (minAmount !== '' && amt < Number(minAmount)) return false;
+      if (maxAmount !== '' && amt > Number(maxAmount)) return false;
+      
       if (searchText && !t.description?.toLowerCase().includes(searchText.toLowerCase()) &&
           !t.category?.toLowerCase().includes(searchText.toLowerCase()) &&
           !t.reference?.toLowerCase().includes(searchText.toLowerCase())) return false;
       return true;
     });
-  }, [transactions, filterType, filterAccount, searchText]);
+
+    // Apply sorting
+    return res.sort((a, b) => {
+      if (sortBy === 'date-desc') return b.date.localeCompare(a.date);
+      if (sortBy === 'date-asc') return a.date.localeCompare(b.date);
+      if (sortBy === 'amount-desc') return (Number(b.amount) || 0) - (Number(a.amount) || 0);
+      if (sortBy === 'amount-asc') return (Number(a.amount) || 0) - (Number(b.amount) || 0);
+      return 0;
+    });
+  }, [transactions, filterType, filterAccount, filterCategory, startDate, endDate, minAmount, maxAmount, searchText, sortBy]);
 
   const filterTotals = useMemo(() => {
     let totalIncome = 0;
@@ -102,7 +228,7 @@ export default function Transactions() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterType, filterAccount, searchText]);
+  }, [filterType, filterAccount, filterCategory, startDate, endDate, minAmount, maxAmount, searchText, sortBy]);
 
   const totalPages = Math.ceil(filtered.length / RECORDS_PER_PAGE);
 
@@ -208,7 +334,15 @@ export default function Transactions() {
       <div className="page-header">
         <div>
           <h2>Transactions</h2>
-          <p>{loading ? '' : `${filtered.length} transaction${filtered.length !== 1 ? 's' : ''} found`}</p>
+          <p>
+            {loading ? '' : (
+              <>
+                <strong>{filtered.length}</strong> transaction{filtered.length !== 1 ? 's' : ''} found
+                <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>•</span>
+                <span style={{ color: 'var(--accent-indigo-light)', fontWeight: 600 }}>{dateRangeLabel}</span>
+              </>
+            )}
+          </p>
         </div>
         <button className="btn btn-primary" onClick={openAdd} id="btn-add-transaction">
           <span>+</span> Add Transaction
@@ -217,10 +351,11 @@ export default function Transactions() {
 
       {loading ? (
         <div>
-          <div className="filter-bar">
-            <div className="skeleton skeleton-input"></div>
-            <div className="skeleton skeleton-input"></div>
-            <div className="skeleton skeleton-input" style={{ flex: 1 }}></div>
+          <div className="filter-bar" style={{ display: 'flex', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+            <div className="skeleton skeleton-input" style={{ flex: 1, minWidth: 240, height: 38 }}></div>
+            <div className="skeleton skeleton-input" style={{ width: 140, height: 38 }}></div>
+            <div className="skeleton skeleton-input" style={{ width: 140, height: 38 }}></div>
+            <div className="skeleton skeleton-input" style={{ width: 120, height: 38 }}></div>
           </div>
           <div className="card">
             {[...Array(6)].map((_, i) => (
@@ -238,18 +373,144 @@ export default function Transactions() {
       ) : (
       <div>
 
-      {/* Filters */}
-      <div className="filter-bar">
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} id="filter-tx-type">
-          <option value="all">All Types</option>
-          {TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-        </select>
-        <select value={filterAccount} onChange={e => setFilterAccount(e.target.value)} id="filter-tx-account">
-          <option value="all">All Accounts</option>
-          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-        <input type="text" placeholder="🔍 Search description, category..." value={searchText}
-          onChange={e => setSearchText(e.target.value)} id="search-transactions" style={{ minWidth: 240 }} />
+      {/* Filters Container */}
+      <div className="filters-container">
+        {/* Main Bar */}
+        <div className="filter-bar-main">
+          <div className="filter-search-wrapper">
+            <span className="filter-search-icon">🔍</span>
+            <input 
+              type="text" 
+              placeholder="Search description, category, reference..." 
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)} 
+              id="search-transactions" 
+            />
+          </div>
+
+          <div>
+            <select 
+              value={datePreset} 
+              onChange={e => handlePresetChange(e.target.value)} 
+              id="filter-date-preset"
+            >
+              <option value="3-months">Last 3 Months</option>
+              <option value="30-days">Last 30 Days</option>
+              <option value="6-months">Last 6 Months</option>
+              <option value="this-year">This Year</option>
+              <option value="custom">Custom Range</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+
+          <div>
+            <select 
+              value={sortBy} 
+              onChange={e => setSortBy(e.target.value)} 
+              id="filter-sort-by"
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="amount-desc">Amount: High to Low</option>
+              <option value="amount-asc">Amount: Low to High</option>
+            </select>
+          </div>
+
+          <div className="filter-actions">
+            <button 
+              className={`btn btn-outline ${showAdvancedFilters ? 'active' : ''}`}
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              id="btn-toggle-advanced-filters"
+            >
+              ⚙️ More Filters
+              {activeFiltersCount > 1 || (activeFiltersCount === 1 && searchText === '') ? (
+                <span className="filter-badge-count">
+                  {activeFiltersCount - (searchText !== '' ? 1 : 0)}
+                </span>
+              ) : null}
+            </button>
+            
+            {activeFiltersCount > 1 || (activeFiltersCount === 1 && datePreset !== '3-months') || (activeFiltersCount === 1 && searchText !== '') ? (
+              <button 
+                className="btn btn-outline" 
+                onClick={resetFilters}
+                style={{ color: 'var(--accent-rose)', borderColor: 'rgba(225, 29, 72, 0.2)' }}
+                id="btn-reset-filters"
+              >
+                Reset
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Collapsible Panel */}
+        <div className={`advanced-filters-panel ${showAdvancedFilters ? 'show' : ''}`}>
+          <div className="advanced-filters-grid">
+            <div className="filter-field">
+              <label htmlFor="filter-tx-type">Type</label>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)} id="filter-tx-type">
+                <option value="all">All Types</option>
+                {TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              </select>
+            </div>
+
+            <div className="filter-field">
+              <label htmlFor="filter-tx-account">Account</label>
+              <select value={filterAccount} onChange={e => setFilterAccount(e.target.value)} id="filter-tx-account">
+                <option value="all">All Accounts</option>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+
+            <div className="filter-field">
+              <label htmlFor="filter-tx-category">Category</label>
+              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} id="filter-tx-category">
+                <option value="all">All Categories</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="filter-field">
+              <label>Amount Range</label>
+              <div className="filter-range-inputs">
+                <input 
+                  type="number" 
+                  placeholder="Min" 
+                  value={minAmount} 
+                  onChange={e => setMinAmount(e.target.value)} 
+                  id="filter-min-amount"
+                />
+                <span className="filter-range-separator">to</span>
+                <input 
+                  type="number" 
+                  placeholder="Max" 
+                  value={maxAmount} 
+                  onChange={e => setMaxAmount(e.target.value)} 
+                  id="filter-max-amount"
+                />
+              </div>
+            </div>
+
+            <div className="filter-field">
+              <label>Custom Date Range</label>
+              <div className="filter-range-inputs">
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={e => handleStartDateChange(e.target.value)} 
+                  id="filter-start-date"
+                />
+                <span className="filter-range-separator">to</span>
+                <input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={e => handleEndDateChange(e.target.value)} 
+                  id="filter-end-date"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
